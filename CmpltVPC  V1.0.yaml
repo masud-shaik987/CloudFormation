@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: "2010-09-09"
+#Author = Anubhooti Niyolia
+
+Resources:
+    myVPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: 20.22.0.0/16
+            EnableDnsSupport: 'false'
+            EnableDnsHostnames: 'false'
+            InstanceTenancy: default
+            Tags: 
+                - Key: Name
+                  Value: CF-FullVPC
+    
+    SubnetPub1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref myVPC
+            AvailabilityZone: "us-east-1a"
+            CidrBlock: 20.22.0.0/20
+            MapPublicIpOnLaunch: true
+            Tags: 
+                - Key: Name
+                  Value: SubPub1.CF-FullVPC
+            
+    SubnetPub2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref myVPC
+            AvailabilityZone: "us-east-1b"
+            CidrBlock: 20.22.16.0/20
+            MapPublicIpOnLaunch: true
+            Tags: 
+                - Key: Name
+                  Value: SubPub2.CF-FullVPC
+            
+    SubnetPvt1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1a"
+            CidrBlock: 20.22.32.0/20
+            MapPublicIpOnLaunch: false
+            Tags: 
+                - Key: Name
+                  Value: SubPvt1.CF-FullVPC
+            VpcId: !Ref myVPC
+            
+    SubnetPvt2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1b"
+            CidrBlock: 20.22.48.0/20
+            MapPublicIpOnLaunch: false
+            Tags: 
+                - Key: Name
+                  Value: SubPvt2.CF-FullVPC
+            VpcId: !Ref myVPC
+    
+    
+    RTableIGW:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref myVPC
+            Tags: 
+                - Key: Name
+                  Value: RouteIGW
+    
+    Igateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: IGW.CF-FullVPC
+    AttachIGW:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId: !Ref Igateway
+            VpcId: !Ref myVPC
+            
+    MyRoute:
+        Type: AWS::EC2::Route
+        DependsOn: AttachIGW
+        Properties:
+            RouteTableId: !Ref RTableIGW
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref Igateway
+     
+    PubsubwithRTA:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        DependsOn: MyRoute
+        Properties:
+            SubnetId: !Ref SubnetPub1
+            SubnetId: !Ref SubnetPub2
+            RouteTableId: !Ref RTableIGW
+        

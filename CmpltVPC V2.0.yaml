@@ -1,0 +1,165 @@
+AWSTemplateFormatVersion: "2010-09-09"
+#Author = Masud
+
+Parameters:
+    vpcIPblock:
+        Type: String
+        AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+        Default: "10.12.0.0/16"
+        ConstraintDescription : Must be a valid IP CIDR range of the form x.x.x.x/x.
+
+    AvailabilityZone1:
+        Description: The AvailabilityZone to use for the First Public subnet
+        Type: AWS::EC2::AvailabilityZone::Name
+
+    AvailabilityZone2:
+        Description: The AvailabilityZone to use for the Second Public subnet
+        Type: AWS::EC2::AvailabilityZone::Name
+
+    AvailabilityZone3:
+        Description: The AvailabilityZone to use for the First Private subnet
+        Type: AWS::EC2::AvailabilityZone::Name
+
+    AvailabilityZone4:
+        Description: The AvailabilityZone to use for the Second Private subnet
+        Type: AWS::EC2::AvailabilityZone::Name  
+
+    PubSubCIDR1:
+        AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+        Default: 10.12.0.0/24
+        Description: VPC CIDR Block for the Public Subnet (eg 10.0.0.0/24)
+        Type: String
+
+    PubSubCIDR2:
+        AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+        Default: 10.12.1.0/24
+        Description: VPC CIDR Block for the Public Subnet (eg 10.0.0.0/24)
+        Type: String
+
+    PvtSubCIDR1:
+        AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+        Default: 10.12.2.0/24
+        Description: VPC CIDR Block for the Public Subnet (eg 10.0.0.0/24)
+        Type: String
+
+    PvtSubCIDR2:
+        AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+        Default: 10.12.3.0/24
+        Description: VPC CIDR Block for the Public Subnet (eg 10.0.0.0/24)
+        Type: String
+
+    SSHIP:
+        AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+        Default: 0.0.0.0/0
+        Description:  Ip Address for the SSH login (eg 10.0.0.0/24)
+        Type: String        
+
+Resources:
+    myVPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !Ref vpcIPblock
+            EnableDnsSupport: 'false'
+            EnableDnsHostnames: 'false'
+            InstanceTenancy: default
+            Tags: 
+                - Key: Name
+                  Value: CF-FullVPC
+
+    SSH:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            VpcId: !Ref myVPC
+            GroupDescription: SSH Security Group
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: !Ref SSHIP
+
+    SubnetPub1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref myVPC
+            AvailabilityZone: !Ref AvailabilityZone1
+            CidrBlock: !Ref PubSubCIDR1
+            MapPublicIpOnLaunch: true
+            Tags: 
+                - Key: Name
+                  Value: SubPub1.CF-FullVPC
+            
+    SubnetPub2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref myVPC
+            AvailabilityZone: !Ref AvailabilityZone2
+            CidrBlock: !Ref PubSubCIDR2
+            MapPublicIpOnLaunch: true
+            Tags: 
+                - Key: Name
+                  Value: SubPub2.CF-FullVPC
+            
+    SubnetPvt1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: !Ref AvailabilityZone3
+            CidrBlock: !Ref PvtSubCIDR1
+            MapPublicIpOnLaunch: false
+            Tags: 
+                - Key: Name
+                  Value: SubPvt1.CF-FullVPC
+            VpcId: !Ref myVPC
+            
+    SubnetPvt2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: !Ref AvailabilityZone4
+            CidrBlock: !Ref PvtSubCIDR2
+            MapPublicIpOnLaunch: false
+            Tags: 
+                - Key: Name
+                  Value: SubPvt2.CF-FullVPC
+            VpcId: !Ref myVPC
+    
+    
+    RTableIGW:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref myVPC
+            Tags: 
+                - Key: Name
+                  Value: RouteIGW
+    
+    Igateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: IGW.CF-FullVPC
+    AttachIGW:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId: !Ref Igateway
+            VpcId: !Ref myVPC
+            
+    MyRoute:
+        Type: AWS::EC2::Route
+        DependsOn: AttachIGW
+        Properties:
+            RouteTableId: !Ref RTableIGW
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref Igateway
+     
+    PubsubwithRTA1:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        DependsOn: MyRoute
+        Properties:
+            SubnetId: !Ref SubnetPub1
+            RouteTableId: !Ref RTableIGW
+
+    PubsubwithRTA2:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        DependsOn: MyRoute
+        Properties:
+            SubnetId: !Ref SubnetPub2
+            RouteTableId: !Ref RTableIGW

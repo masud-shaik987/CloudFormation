@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+    myVPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: 199.0.0.0/16
+            EnableDnsSupport: 'false'
+            EnableDnsHostnames: 'false'
+            InstanceTenancy: default
+            Tags: 
+                - Key: Name
+                  Value: Test
+            
+    mySubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref myVPC
+            CidrBlock: 199.0.0.0/24
+
+    Ec2Instance: 
+        Type: AWS::EC2::Instance
+        Properties: 
+            ImageId: ami-04169656fea786776
+            InstanceType: t2.micro
+            KeyName: "home"
+            SubnetId: !Ref mySubnet
+            SecurityGroupIds: 
+              - !Ref SSH
+              - !Ref SSH1
+             # If you are creating a VPC and Subnet use "SecurityGroupIds" instead of "SecurityGroups".
+             # "SecurityGroupIds" A list that contains the security group IDs for VPC security groups to assign to the Amazon EC2 instance
+             # "SecurityGroups" Valid only for Amazon EC2 security groups. A list that contains the Amazon EC2 security groups to assign to the Amazon EC2 instance.
+    SSH:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            VpcId: !Ref myVPC
+            #To create a VPC security group, use the VpcId property.
+            GroupDescription: Ssh sg
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: 0.0.0.0/0
+                  
+    SSH1:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            VpcId: !Ref myVPC
+            #To create a VPC security group, use the VpcId property.
+            GroupDescription: Ssh sg
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  CidrIp: 0.0.0.0/0
