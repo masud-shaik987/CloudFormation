@@ -149,14 +149,14 @@ Resources:
             DestinationCidrBlock: 0.0.0.0/0
             GatewayId: !Ref Igateway
      
-    PubsubwithRouteWithIgw:
+    PubsubwithRouteWithIgw1:
         Type: AWS::EC2::SubnetRouteTableAssociation #Attaching the Route Table with the Internet gateway to the Public subnet1
         DependsOn: RouteWithIgw #Depends on the updating of the route table with the Internet gateway.
         Properties:
             SubnetId: !Ref SubnetPub1
             RouteTableId: !Ref RTableIGW
 
-    PubsubwithRouteWithIgw:
+    PubsubwithRouteWithIgw2:
         Type: AWS::EC2::SubnetRouteTableAssociation ##Attaching the Route Table with the Internet gateway to the Public subnet2
         DependsOn: RouteWithIgw ##Depends on the updating of the route table with the Internet gateway.
         Properties:
